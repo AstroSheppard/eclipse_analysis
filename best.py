@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-
+# im sure this function is built into python somehow, can simplify...
 def wmean(val, dval):
    dw=np.sum(1.0/dval**2)   
    sum=np.sum(1.0*val/dval**2)/dw
