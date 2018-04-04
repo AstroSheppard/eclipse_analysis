@@ -1,3 +1,5 @@
+# Get a weighted mean spectra from all visits
+# will revisit restores when previous organization is fixed.
 import os
 import glob
 
@@ -69,7 +71,10 @@ def best(planet):
 #   plt.close()
 
 ###   SAVE, filename=dir+planet+'.sav', center, results, depth, error, dif
-# how to make this a pandas df? planet (repeated), center, depth, error, ?results, 
+# how to make this a pandas df? planet (repeated), center, depth, error, so num rows = number of bins. 
+# maybe make nbins a column too?
+
+# make dif a separate pandas df
 
 
   
