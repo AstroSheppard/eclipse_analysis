@@ -1,4 +1,4 @@
-PRO best, planet
+def best(planet):
 
 dir='./spectra_april/'
 data=file_search(dir+planet+'*.sav')
