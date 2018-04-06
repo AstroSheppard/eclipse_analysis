@@ -12,7 +12,7 @@ def data_zapping(month):
 
 	# IMAGE FILES ; Find all image files, store in array "raw". Name of
 	# image is stored in "header" array
-  
+  	print 'test'
   	raw = FILE_SEARCH('./'+month + '/*ima.fits')
   	header=headfits(raw(0))
   	fits_info, raw(0), N_ext=n_ext, /SILENT
