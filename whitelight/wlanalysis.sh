@@ -3,6 +3,7 @@
 visit='kelt1/visit01'
 direction='forward'
 savename='kelt1f1'
+transit=False
 
 ; Run wave_solution.py
 
