@@ -253,12 +253,12 @@ def systematic_model_grid_selection(size=4, transit=False):
     return grid
 
   
-def whitelight_eclipse2017(p_start, img_date, allspec, plotting=False
+def whitelight2018(p_start, img_date, allspec, plotting=False
                            , fixtime=False, norandomt=False, openinc=False, savefile=False
                            , transit=False):
     """
   NAME:                        
-       WHITELIGHT_ECLIPSE2017.py
+       WHITELIGHT2018.py
   
   AUTHOR:
      Based on Hannah R. Wakeford, NASA/GSFC code 693, Greenbelt, MD 20771
