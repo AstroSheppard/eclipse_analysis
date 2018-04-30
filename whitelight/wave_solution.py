@@ -237,7 +237,9 @@ def wave_solution(visit, dir, plotting=False, savename=False, phase=False, trans
         plt.savefig('./wave_sol/'+savename+'_wavefit.pdf')     
         
         wave_solution=pd.DataFrame(data_wave, columns=['Wavelength Solution [A]'])
-        wave_solution['Visit']=visit
+        wave_solution['Visit']=visit+dir
+        wave_solution['Transit']=transit
+        wave_solution=wave_solution.set_index('Visit')
         try:
             current=pd.read_csv('./wave_sol/wave_solution.csv')
             current=pd.concat((current, wave_solution))
@@ -253,7 +255,9 @@ def wave_solution(visit, dir, plotting=False, savename=False, phase=False, trans
         extras['Xshift']=parameters[2]
         extras['Coeff_0']=a[0]
         extras['Coeff_1']=a[1]
-        extras['Visit']=visit
+        extras['Visit']=visit+dir
+        extras['Transit']=transit
+        extras=extras.set_index('Visit')
         try:
             cur=pd.read_csv('./wave_sol/wave_solution_extras.csv')
             cur=pd.concat((cur,extras))
