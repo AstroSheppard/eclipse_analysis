@@ -1,6 +1,6 @@
 *Explanation of each function*
 
-First, data (ima files) must be manually retrieved via FTP from Hubble MAST archive and put into a directory named after the planet.
+First, data (ima files) must be manually retrieved via FTP (-ip tags, make sure carriage stripping - cr - is off and binary is correct) from Hubble MAST archive and put into a directory named after the planet.
 Then, must create 4 files: 
 inputs.dat: System parameters from literature
 wave.dat, continuum.dat, and kurucz.dat: wavelength, continuum, and line data from kurucz stellar spectra
