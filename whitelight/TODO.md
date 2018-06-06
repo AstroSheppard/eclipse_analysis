@@ -1,1 +1,5 @@
-Test using full dataset, and probably do small debuggings. 
+Make ramp fully functional. 
+
+Maybe add exponential HST phase to marginalization grid?
+
+Update github
