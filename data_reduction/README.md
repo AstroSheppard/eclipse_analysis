@@ -9,13 +9,18 @@ Now, use programs.
 Separate.py: Groups data by visit (but not direction)
 %run separate.py [planet]
 
-cr_bkg.py: Isolates data on exposure, sorts by direction, removes cosmic rays and background. Writes data 
-            to zapped2017 'planet/visit/direction/cr/'. Requires some manual input (like window size for bkg subtraction).
+bkg.py: Isolates data on exposure, sorts by direction, gets initial aperture, and removes background. Writes data 
+            to zapped2017 'planet/visit/direction/bkg/'. Requires some manual input (like window size for bkg subtraction).
             Use 'test' as 3rd keyword to see if bkg removal is working as expected (test_zapping)
-%run cr_bkg.py [planet] [visit]
+%run bkg.py [planet] [visit] [test = false]
 
-fullzap.py: Corrects bad pixels and finds nominal aperture. Writes to zapped2017/.../final
-% run fullzap.py [planet] [visit]
+reduction.py: Finds wavelength solution, removes flat field, masks bad pixels from dq array, removes cosmic rays, sets final aperture, 
+              updates errors for background noise, and writes full fits file (reduced data, errors, raw image) to zapped2017/.../final
+% run reduction.py [planet] [visit] [direction] [transit=0]
+
+fullzap.py: Contains functions used in reduction.py
+
+sensitivity.fits and flat.fits: From instrument, used in wavelength solution and flat field removal, respectively.
 
 Note: Necessary pip installs are given in requirements.txt. Use "pip install -r requirements.txt" 
-(preferably in virtualenv) to be able to run. Also, in iPython help(function name) should give more info.
+(preferably in virtualenv) to be able to run. Also, in iPython help(function name) should give more info (from docstrings).
