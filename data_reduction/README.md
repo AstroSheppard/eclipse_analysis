@@ -22,5 +22,9 @@ fullzap.py: Contains functions used in reduction.py
 
 sensitivity.fits and flat.fits: From instrument, used in wavelength solution and flat field removal, respectively.
 
+To set up a virtual environment: "pip install virtualenv" "cd data_reduction" "virtualenv data_reduction" "source data_reduction/bin/activate"
+
 Note: Necessary pip installs are given in requirements.txt. Use "pip install -r requirements.txt" 
 (preferably in virtualenv) to be able to run. Also, in iPython help(function name) should give more info (from docstrings).
+
+
