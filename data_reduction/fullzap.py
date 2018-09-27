@@ -20,6 +20,7 @@ def bad_pixels(data, headers, errors, raws, savefile):
     if n > 1:
         ####Find base aperture####
         x,y=aperture(data[1])
+        
         # Use larger aperture to include all light
         update=np.asarray([1,-1,1])
         xl=x+5*update
@@ -128,27 +129,70 @@ def zapped(allspec):
         #dims=np.empty_like(allspec)
         #aspec=allspec.copy()
         nspec, nspat, nwave = allspec.shape
-  	nloop = [10,8]                      
-        
-        rows=np.ma.median(allspec, axis=2)
-        medians=np.tile(np.ma.median(allspec, axis=0),(nspec, 1,1))
-        ### Median sigma check
-        #sigmas=np.sqrt(np.sum((allspec-medians)*(allspec-medians), axis=0)/(nspec-np.sum(allspec.mask, axis=0)))
-        #np.place(sigmas, sigmas==0, 1)
-        #crs=np.abs(allspec-medians)/sigmas
-        ###
-        sigma=np.tile(allspec.std(axis=0), (nspec, 1, 1))
-        np.place(sigma, sigma==0, 1)
-        crs=allspec.anom(axis=0)/sigma
-        uneven_scan_row=np.moveaxis(np.tile(np.abs(rows.anom(axis=0)/rows.std(axis=0))>3
-                                            , (nwave,1,1)), 0, 2)
-        
-  	for sigma in nloop:      
+  	nloop = [8, 8]                      
+        for sig in nloop:      
             nzap = 0
-            index=(crs>sigma) * (~uneven_scan_row)
+            # Get row means, exluding top and bottom 15 to ignore CRs
+            rows=np.ma.mean(np.sort(allspec, axis=2)[:,:,15:-15],axis=2)
+            medians=np.tile(np.ma.median(allspec, axis=0),(nspec, 1,1))
+            
+            ### Median sigma check
+            #sigmas=np.sqrt(np.sum((allspec-medians)*(allspec-medians), axis=0)/(nspec-np.sum(allspec.mask, axis=0)))
+            #np.place(sigmas, sigmas==0, 1)
+            #crs=np.abs(allspec-medians)/sigmas
+            ###
+            temp=allspec.copy()
+            x=np.asarray(range(nspec))
+            for i in range(nspat):
+                y=temp[:,i,:].sum(axis=1)
+                y/=np.median(y)
+                m, b=np.polyfit(x, y, 1)
+                shift=m*x+b
+                shift=np.tile(shift, (temp.shape[2],1)).T
+                np.place(shift, shift==0, 1)
+                temp[:,i,:]=temp[:,i,:]/shift
+    
+            # correct for uneven scan rate before cr check
+            row_anom=np.moveaxis(np.tile(rows.anom(axis=0), (nwave,1,1)), 0, 2)
+            #row_anom2=np.moveaxis(np.tile(rows2.anom(axis=0), (nwave,1,1)), 0, 2)
+            
+            sigma=np.tile(temp.std(axis=0), (nspec, 1, 1))
+            np.place(sigma, sigma==0, 1)
+            crs=temp.anom(axis=0)/sigma
+            #np.place(sigma2, sigma2==0, 1)
+            #crs2=allspec.anom(axis=0)/sigma2
+            #plt.imshow(allspec[69,:,:])
+            #plt.show()
+            #plt.imshow(allspec[73,:,:])
+            #plt.show()
+            #plt.imshow(crs[:,24,:])
+            #plt.show()
+            #plt.imshow(crs2[:,24,:])
+            #plt.show()
+
+            uneven_scan_row=np.moveaxis(np.tile(np.abs(rows.anom(axis=0)/rows.std(axis=0))>2.
+                                                , (nwave,1,1)), 0, 2)
+            
+
+            #plt.imshow(test/np.mean(test))
+            #plt.show()
+            #plt.imshow(np.abs(rows.anom(axis=0)/rows.std(axis=0)))
+            #plt.show()
+            #plt.imshow(test/np.mean(test)>3.3)
+            #plt.show()
+            #plt.imshow(sigma[31,:,:])
+            #plt.show()
+            #plt.imshow(crs[73,:,:])
+            #plt.show()
+  	    #plt.imshow(uneven_scan_row[:,:,1])
+            #plt.show()
+            index=(crs>sig) * (~uneven_scan_row)
+            #plt.imshow(index[73,:,:].astype(int))
+            #plt.show()
             nzap=np.ma.sum(index)    
             allspec.data[index]=medians[index]
-     	    print 'Cosmic rays corrected %d' % nzap     
+     	    print 'Cosmic rays corrected %d' % nzap
+        #sss
         return allspec
 
 if __name__=='__main__':

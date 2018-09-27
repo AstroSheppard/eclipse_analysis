@@ -146,6 +146,7 @@ def wave_solution(visit, dire, level, plotting=False, savename=False, phase=Fals
     exp=orbits(data, phase=phase, transit=transit)[0] # may have phase mixed up
     
     # Read in data, and normaliza the spectrum
+    
     data=np.sort(glob.glob('../data_reduction/reduced/'+ visit
                            +'/'+ dire +'/'+level+"/%03d*"%exp))
 

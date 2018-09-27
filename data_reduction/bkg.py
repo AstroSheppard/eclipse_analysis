@@ -11,6 +11,7 @@ from tqdm import tqdm
 import pandas as pd
 
 coords=[]
+bkg_coords=[]
 
 def onclick(event):
     global ix, iy
@@ -24,13 +25,25 @@ def onclick(event):
     if len(coords) == 2:
         fig.canvas.mpl_disconnect(cid)
 
+def onclick_bkg(event):
+    global iix, iiy
+    iix=event.xdata
+    iiy=event.ydata
+    print 'x = %d, y = %d' % (iix, iiy)
+
+    global bkg_coords
+    bkg_coords.append((iix, iiy))
+    
+    if len(bkg_coords) == 2:
+        fig.canvas.mpl_disconnect(cid)
+
         
-def test(img, window, final_img):
+def test(img, window, final_img,get_window=True):
         """ Test to make sure window size does not cut 
         out important data"""
-        scale=46.7
-        raw_fit=bkg(img, window, test=True)
-        final_img=final_img*scale
+        #scale=46.7
+        raw_fit=bkg(img, window, get_window=get_window, test=True)
+        final_img=final_img#*scale
 	fits.writeto('./test_zapping/raw.fits', final_img, overwrite=True)
 	sys.exit('Compare background-subtracted image with input image (raw.fits)')
 
@@ -57,7 +70,7 @@ def get_data(visit):
             	quality[i]=header['QUALITY']
                 fit.close()
         index=(obstype == 'SPECTROSCOPIC')* (
-            (rate ==  'SPARS10') + (rate == 'SPARS25')) * (quality != 'LOCKLOST')
+           (rate ==  'SPARS10') + (rate == 'SPARS25')) * (quality != 'LOCKLOST')
         og=len(ima)
         ima=ima[index]
         raw=raw[index]
@@ -72,7 +85,7 @@ def maxrow(frame):
   	return f1
 
 # Input 1 fits file, make array with each extension (3-D: [ext, x, y])
-def bkg(raw, size_window, test=False):
+def bkg(raw, size_window, test=False, get_window=False):
         """ Use differential frames (Deming 2013) to remove
         background."""
         with fits.open(raw) as exp:
@@ -104,7 +117,8 @@ def bkg(raw, size_window, test=False):
 		# this last frame will give large negatives. Set it to 0
 
                 # Adjust window size here, since "dir" is not a perfect correlation.
-     		window=np.floor(size_window*2.4).astype(int)
+     		#window=np.floor(size_window).astype(int)
+
      		frames[-1,:,:]=0.0
      		ny=frames.shape[2]
     		# window=40
@@ -113,20 +127,48 @@ def bkg(raw, size_window, test=False):
         		f1=frames[j,:,:]      
         		f2=frames[j+1,:,:]     
         		frame_diffs[j,:,:]=f1-f2
+
+                        if get_window==True and j == 0:
+                            centroid=maxrow(f1-f2)
+                            fig=plt.figure()
+                            ax=plt.imshow(f1-f2)
+                            cid = fig.canvas.mpl_connect('button_press_event', onclick_bkg)
+                            cid = fig.canvas.mpl_connect('button_press_event', onclick_bkg)
+                            print "Click the top-left then the bottom-right corners"
+                            plt.show()
+                            bkgc= [int(i) for item in bkg_coords for i in item]
+                            x1=bkgc[1]
+                            x2=bkgc[3]
+                            y1=bkgc[0]
+                            y2=bkgc[2]
+                            high=x2-centroid
+                            low=centroid-x1
+                            size_window= low, high, y1, y2
+                        else:
+                            low, high, y1, y2 = size_window
         		mrow=maxrow(frame_diffs[j,:,:])
-                       
+                        
                         # prevent window outside of data
-                        if mrow+window > ny-1: window = ny-1-mrow
+                        if mrow+high > ny: window = ny-mrow
                         # Mask data, find median of background,
                         # subtract from image, zero out bkg
-                        bg=np.concatenate((frame_diffs[j,:mrow-window,:],
-                                           frame_diffs[j, mrow+window:,:]),axis=0)
-                        med=np.median(bg)
+                        mask=np.zeros_like(f1-f2).astype(bool)
+                        mask[mrow-low:mrow+high, y1:y2]=True
+                        zero=np.ma.array(f1-f2, mask=mask)
+                        med=np.ma.median(zero)
+                        zero=zero.data-med
+                        zero[~mask]=0
+                        frame_diffs[j,:,:]=zero
                         removed+=med
+                        
+                        #bg=np.concatenate((frame_diffs[j,:mrow-low,:],
+                        #                   frame_diffs[j, mrow+high:,:]),axis=0)
+                        #med=np.median(bg)
+                     
                       
-       			frame_diffs[j,:,:]=frame_diffs[j,:,:]-med
-        		frame_diffs[j,:mrow-window,:]=0 
-        		frame_diffs[j,mrow+window:,:]=0
+       			#frame_diffs[j,:,:]=frame_diffs[j,:,:]-med
+        		#frame_diffs[j,:mrow-window,:]=0 
+        		#frame_diffs[j,mrow+window:,:]=0
                         if test:
         	                file1='./test_zapping/dif'+str(j)+'.fits'
         	                file2='./test_zapping/frame'+str(j)+'.fits'
@@ -134,22 +176,44 @@ def bkg(raw, size_window, test=False):
                                 fits.writeto(file2,f1, overwrite=True)
 
   	if 'COMPLETE' in corr:
-    		window=size_window
      	        ny=frames.shape[2]
      		for j in range(count-1):
         		f1=frames[j,:,:]*times[j]
         		f2=frames[j+1,:,:]*times[j+1]
         		frame_diffs[j,:,:]=f1-f2
-        		mrow=maxrow(frame_diffs[j,:,:]) 
-        		if mrow+window > ny-1: window = ny-1-mrow 
-        		# Find median of background noise
-                        bg=np.concatenate((frame_diffs[j,:mrow-window, :],
-                                           frame_diffs[j,mrow+window:, :]), axis=0)
-                        med=np.median(bg)
+                        
+                        if get_window==True and j == 0:
+                            centroid=maxrow(f1-f2)
+                            fig=plt.figure()
+                            ax=plt.imshow(f1-f2)
+                            cid = fig.canvas.mpl_connect('button_press_event', onclick_bkg)
+                            cid = fig.canvas.mpl_connect('button_press_event', onclick_bkg)
+                            print "Click the top-left then the bottom-right corners"
+                            plt.show()
+                            bkgc= [int(i) for item in bkg_coords for i in item]
+                            x1=bkgc[1]
+                            x2=bkgc[3]
+                            y1=bkgc[0]
+                            y2=bkgc[2]
+                            high=x2-centroid
+                            low=centroid-x1
+                            size_window= low, high, y1, y2
+                        else:
+                            low, high, y1, y2 = size_window
+        		mrow=maxrow(frame_diffs[j,:,:])
+                        
+                        # prevent window outside of data
+                        if mrow+high > ny: window = ny-mrow
+                        # Mask data, find median of background,
+                        # subtract from image, zero out bkg
+                        mask=np.zeros_like(f1-f2).astype(bool)
+                        mask[mrow-low:mrow+high, y1:y2]=True
+                        zero=np.ma.array(f1-f2, mask=mask)
+                        med=np.ma.median(zero)
+                        zero=zero.data-med
+                        zero[~mask]=0
+                        frame_diffs[j,:,:]=zero
                         removed+=med
-       			frame_diffs[j,:,:]=frame_diffs[j,:,:]-med
-        		frame_diffs[j,:mrow-window,:]=0 
-        		frame_diffs[j,mrow+window:,:]=0
                         
                         if test:
         	                file1='./test_zapping/dif'+str(j)+'.fits'
@@ -164,7 +228,10 @@ def bkg(raw, size_window, test=False):
         err=np.sqrt(removed+np.square(err))
 
         if test: fits.writeto('./test_zapping/fbkg.fits', output, overwrite=True)
-        return [output, err]
+        if get_window == True:
+            return [output, err, [low, high, y1, y2]]
+        else:
+            return [output, err]
   
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -209,7 +276,7 @@ if __name__ == '__main__':
     y2=coords[2]
     xlen=x2-x1
     ylen=y2-y1
-
+    coords=[]
     if n_forward > 0:
         allimages_f = np.zeros((n_forward, xlen, ylen))
         allheader_f = np.asarray([])
@@ -255,35 +322,35 @@ if __name__ == '__main__':
 
     # determine window size for both forward and reverse images
     # direction array contains something related to scan rate for each image
-    w1=direction[0]
-    w2=direction[1]
-    rwindow=0
-    fwindow=0
+    #w1=direction[0]
+    #w2=direction[1]
+    #rwindow=0
+    #fwindow=0
         
     # If direction[0] is negative, then it is a reverse scan, and
     # we set the window to be a size that typically captures all
     # source photons
-    if w1 < 0:
-        rwindow=np.ceil(2*np.abs(w1))
+    #if w1 < 0:
+    #    rwindow=np.ceil(2*np.abs(w1))*xw
     # If it's positive, then it's a forward scan and we set the
     # forward window instead
-    else:
-        fwindow=np.ceil(2*np.abs(w1))
+    #else:
+    #    fwindow=np.ceil(2*np.abs(w1))*xw
     # Now we check the second scan, which can be negative for a
     # bi-directional, in which case we set the reverse window. 
-    if w2 < 0:
-        rwindow=np.ceil(2*np.abs(w2))
+    #if w2 < 0:
+    #    rwindow=np.ceil(2*np.abs(w2))*xw
     # For uni-directional, the rate doesnt change so this does nothing
-    else:
-        fwindow=np.ceil(2*np.abs(w2))
+    #else:
+    #    fwindow=np.ceil(2*np.abs(w2))*xw
     # For one data set the scan direction (I use as a proxy for rate)
     # was super low, so we can set it to be either the other directions
     # window or 1, in case the other direction is 0 (ie,
     # unidirectional and low scan "rate")
-    if rwindow <= 1: rwindow = max(fwindow,1)
-    if fwindow <= 1: fwindow = max(rwindow,1)
-    
-    if len(sys.argv)==4: test(ima[1], rwindow, reverse_img) # ensure window size is okay
+    #if rwindow <= 1: rwindow = max(fwindow,1)
+    #if fwindow <= 1: fwindow = max(rwindow,1)
+
+   
 
     # For each exposure, check if reverse or forward scan.
     # Subtract background
@@ -291,6 +358,9 @@ if __name__ == '__main__':
     # Save image to all images, save header to all headers 
     f=0
     r=0
+    fwindow=[1,1,1,1]
+    rwindow=[1,1,1,1]
+    if len(sys.argv)==5: test(ima[1], rwindow, reverse_img)
     for i,expo in tqdm(enumerate(ima), desc='Subtracting background'):
         obs=fits.open(expo)
         hdr=obs[0].header#.tostring(sep='\\n')
@@ -301,7 +371,14 @@ if __name__ == '__main__':
             hdr['Count']=np.mean(image)
         obs.close()
         if direction[i] > 0:
-            raw_fit, err_array=bkg(expo, fwindow)
+            if f==0:
+                get_window=True
+                raw_fit, err_array, fwindow=bkg(expo, fwindow, get_window=get_window)
+            else:
+                get_window=False
+                raw_fit, err_array=bkg(expo, fwindow, get_window=get_window)
+                
+           
 	    img = raw_fit[x1:x2,y1:y2]
             raw_file=fits.open(raw[i])
             raw_img=raw_file[1].data[x1:x2,y1:y2]
@@ -315,7 +392,13 @@ if __name__ == '__main__':
             hdul.writeto(filename, overwrite=True)
 	    f+=1
         else:
-            raw_fit, err_array=bkg(expo, rwindow)
+            if r==0:
+                get_window=True
+                raw_fit, err_array, rwindow=bkg(expo, rwindow, get_window=get_window)
+            else:
+                get_window=False
+                raw_fit, err_array=bkg(expo, rwindow, get_window=get_window)
+ 
 	    img = raw_fit[x1:x2,y1:y2]
             raw_file=fits.open(raw[i])
             raw_img=raw_file[1].data[x1:x2,y1:y2]

@@ -10,11 +10,17 @@ import fullzap
 import wave_solution
 from bkg import get_data
 
-def flatfield(visit, direction, sub, wave=[0]):
+def flatfield(visit, direction, wave=[0]):
     """ Exps is every exposure in a visit/direction
     wave is wavelength solution of observation
     sub is size of subarray for observation"""
 
+    data=np.sort(glob.glob('../data_reduction/reduced/'
+                           + visit +'/'+ direction +'/bkg/*.fits'))
+    test=fits.open(data[3])
+    sub=int(test[0].header['subtype'][2:-3])
+    test.close()
+    
     if len(wave)==1:
         df=pd.read_csv('./wave_sol/wave_solution.csv', index_col=0)
         wave=df.loc[visit, 'Wavelength Solution [A]'].values
@@ -52,8 +58,7 @@ def flatfield(visit, direction, sub, wave=[0]):
         # this should be same dimensions as exp
         FF+=flat*np.power(x,i)
     cube.close()
-    data=np.sort(glob.glob('../data_reduction/reduced/'
-                           + visit +'/'+ direction +'/bkg/*.fits'))
+
     nexp=len(data)
     all_img=np.empty((nexp, xd, yd))
     all_err=all_img.copy()
@@ -71,7 +76,7 @@ def flatfield(visit, direction, sub, wave=[0]):
         all_err[i,:,:]=err
         all_raw[i,:,:]=raw
 
-    return [all_img/FF, headers, all_err/FF, all_raw]
+    return [all_img/FF, headers, all_err/FF, all_raw, FF]
 
 def dq(visit, direction, data):
     x1,x2,y1,y2=pd.read_csv('coords.csv'
@@ -85,11 +90,16 @@ def dq(visit, direction, data):
         obs.close()
         dqi=dqi[x1:x2,y1:y2]
         dq_array[i, :,:]=dqi
-
+   
+    #dq_array=dq_array[:, 25:47, 42:186]
+    #for j in range(dq_array.shape[1]):
+    #    plt.plot(dq_array[:,j, 106], label='%d'%j, color='b')
+    #    plt.legend()
+    #    plt.show()
     poor=(dq_array != 0) * (dq_array != 2048) * (dq_array != 8)
     same=np.sum(poor, axis=0)
     mask=(same==poor.shape[0]).astype(bool)
-    
+
     return mask
 
 
@@ -112,13 +122,14 @@ if __name__=='__main__':
     wave=wave_solution.wave_solution(visit, direction, 'bkg', plotting=plotting
                                      , savename=False, transit=transit)
     print 'wave done'
-    data, headers, errors, raw=flatfield(visit, direction, 256, wave=wave)
+    data, headers, errors, raw, ff=flatfield(visit, direction, wave=wave)
+    
     print 'flats done'
     mask=dq(visit, direction, data)
     mask=np.broadcast_to(mask, data.shape)
     data=np.ma.array(data, mask=mask)
     cr_data=fullzap.zapped(data)
-
+    
     print 'cr done'
     filename = './reduced/'+ visit + '/'+direction+'/final/'
     fullzap.bad_pixels(cr_data, headers, errors, raw, filename)
