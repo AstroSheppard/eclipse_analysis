@@ -283,7 +283,7 @@ if __name__ == '__main__':
         fzdir='./reduced/'+visit+'/forward/bkg/'
         f2dir='./reduced/'+visit+'/forward/final/'
         try:
-            os.mkdir(fzdir)
+            os.makedirs(fzdir)
         except OSError:
             if os.path.isdir(fzdir):
                 shutil.rmtree(fzdir)
@@ -291,7 +291,7 @@ if __name__ == '__main__':
             else:
                 raise
         try:
-            os.mkdir(r2dir)
+            os.makedirs(r2dir)
         except OSError:
             if os.path.isdir(f2dir):
                 shutil.rmtree(f2dir)
