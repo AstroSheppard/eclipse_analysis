@@ -387,7 +387,7 @@ if __name__ == '__main__':
             prim=fits.PrimaryHDU(img, header=hdr)
             err=fits.ImageHDU(errors)
             rawi=fits.ImageHDU(raw_img)
-            hdul=fits.HDUList([prim, err, raw_i])
+            hdul=fits.HDUList([prim, err, rawi])
             filename = fzdir + "%03d"%f + '.fits'
             hdul.writeto(filename, overwrite=True)
 	    f+=1
