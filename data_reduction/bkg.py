@@ -287,7 +287,7 @@ if __name__ == '__main__':
         except OSError:
             if os.path.isdir(fzdir):
                 shutil.rmtree(fzdir)
-                os.mkdir(fzdir)
+                os.makedirs(fzdir)
             else:
                 raise
         try:
@@ -295,7 +295,7 @@ if __name__ == '__main__':
         except OSError:
             if os.path.isdir(f2dir):
                 shutil.rmtree(f2dir)
-                os.mkdir(r2dir)
+                os.makedirs(r2dir)
             else:
                 raise
     if n_reverse > 0:
