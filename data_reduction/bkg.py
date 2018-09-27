@@ -291,11 +291,11 @@ if __name__ == '__main__':
             else:
                 raise
         try:
-            os.makedirs(r2dir)
+            os.makedirs(f2dir)
         except OSError:
             if os.path.isdir(f2dir):
                 shutil.rmtree(f2dir)
-                os.makedirs(r2dir)
+                os.makedirs(f2dir)
             else:
                 raise
     if n_reverse > 0:
