@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import fullzap 
 from bkg import get_data
 
-def flatfield(visit, direction, wave=[0]):
+def flatfield(visit, direction):
     """ Exps is every exposure in a visit/direction
     wave is wavelength solution of observation
     sub is size of subarray for observation"""
@@ -84,7 +84,7 @@ if __name__=='__main__':
         transit=False
         
 
-    data, headers, errors, raw, ff=flatfield(visit, direction, wave=wave)
+    data, headers, errors, raw=flatfield(visit, direction)
     
     print 'flats done'
     mask=dq(visit, direction, data)
